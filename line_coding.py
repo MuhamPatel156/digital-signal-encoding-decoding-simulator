@@ -3,6 +3,9 @@
 NRZ-L: 0 = +1, 1 = -1.
 NRZ-I: initial level -1; 1 changes the level at the bit boundary.
 AMI: initial previous pulse -1, so the first data 1 is +1.
+Manchester: 0 = (+1, -1), 1 = (-1, +1).
+Differential Manchester: initial level +1; 0 changes at the boundary,
+1 does not, and every bit changes in the middle.
 
 An encoded signal stores voltage samples, one or two equal slots per bit.
 """
@@ -65,12 +68,33 @@ def _ami(bits: str) -> list[int]:
     return result
 
 
-SCHEMES = ('NRZ-L', 'NRZ-I', 'AMI')
+def _manchester(bits: str) -> list[int]:
+    result = []
+    for bit in bits:
+        first = 1 if bit == "0" else -1
+        result.extend((first, -first))
+    return result
+
+
+def _differential_manchester(bits: str) -> list[int]:
+    previous = 1
+    result = []
+    for bit in bits:
+        first = -previous if bit == "0" else previous
+        second = -first
+        result.extend((first, second))
+        previous = second
+    return result
+
+
+SCHEMES = ('NRZ-L', 'NRZ-I', 'Manchester', 'Differential Manchester', 'AMI')
 SCRAMBLING = ('None',)
 
 _ENCODERS: dict[str, tuple[Callable[[str], list[int]], int]] = {
     'NRZ-L': (_nrz_l, 1),
     'NRZ-I': (_nrz_i, 1),
+    'Manchester': (_manchester, 2),
+    'Differential Manchester': (_differential_manchester, 2),
     'AMI': (_ami, 1),
 }
 _SCRAMBLERS: dict[str, Callable[[str], list[int]]] = {}
