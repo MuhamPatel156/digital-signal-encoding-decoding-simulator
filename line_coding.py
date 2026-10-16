@@ -87,8 +87,59 @@ def _differential_manchester(bits: str) -> list[int]:
     return result
 
 
+def _b8zs(bits: str) -> list[int]:
+    """Substitute 000VB0VB; V repeats polarity, B alternates it."""
+    last_pulse = -1
+    result = []
+    index = 0
+    while index < len(bits):
+        if bits.startswith("00000000", index):
+            result.extend((0, 0, 0, last_pulse, -last_pulse,
+                           0, -last_pulse, last_pulse))
+            # The last substitution pulse equals the preceding pulse.
+            index += 8
+        elif bits[index] == "1":
+            last_pulse = -last_pulse
+            result.append(last_pulse)
+            index += 1
+        else:
+            result.append(0)
+            index += 1
+    return result
+
+
+def _hdb3(bits: str) -> list[int]:
+    """Substitute 000V for odd mark parity, B00V for even parity.
+
+    Parity starts at zero and resets after each substitution. In B00V,
+    B and V have the same polarity, opposite the preceding pulse.
+    """
+    last_pulse = -1
+    marks_since_violation = 0
+    result = []
+    index = 0
+    while index < len(bits):
+        if bits.startswith("0000", index):
+            if marks_since_violation % 2:
+                result.extend((0, 0, 0, last_pulse))
+            else:
+                last_pulse = -last_pulse
+                result.extend((last_pulse, 0, 0, last_pulse))
+            marks_since_violation = 0
+            index += 4
+        elif bits[index] == "1":
+            last_pulse = -last_pulse
+            result.append(last_pulse)
+            marks_since_violation += 1
+            index += 1
+        else:
+            result.append(0)
+            index += 1
+    return result
+
+
 SCHEMES = ('NRZ-L', 'NRZ-I', 'Manchester', 'Differential Manchester', 'AMI')
-SCRAMBLING = ('None',)
+SCRAMBLING = ('None', 'B8ZS', 'HDB3')
 
 _ENCODERS: dict[str, tuple[Callable[[str], list[int]], int]] = {
     'NRZ-L': (_nrz_l, 1),
@@ -97,7 +148,7 @@ _ENCODERS: dict[str, tuple[Callable[[str], list[int]], int]] = {
     'Differential Manchester': (_differential_manchester, 2),
     'AMI': (_ami, 1),
 }
-_SCRAMBLERS: dict[str, Callable[[str], list[int]]] = {}
+_SCRAMBLERS: dict[str, Callable[[str], list[int]]] = {"B8ZS": _b8zs, "HDB3": _hdb3}
 
 
 def encode(bits: str, scheme: str, scrambling: str = "None") -> EncodedSignal:
