@@ -2,6 +2,12 @@
 
 This is a Python project for understanding how digital data is represented as a signal. It supports different line coding methods, scrambling, and Pulse Code Modulation (PCM). Streamlit is used for the interface and Plotly is used to draw the waveforms.
 
+## Live simulator
+
+[Open the Digital Signal Encoding and Decoding Simulator](https://digital-signal-encoding-decoding-simulator.streamlit.app/)
+
+Use the app directly in your browser without installing Python or any libraries.
+
 ## Features
 
 - Enter binary data manually or generate random bits.
